@@ -25,6 +25,11 @@
 /* Begin PBXFileReference section */
 		5524E37C222BFA94007CCFF8 /* STLite */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = STLite; sourceTree = BUILT_PRODUCTS_DIR; };
 		5524E37F222BFA94007CCFF8 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		5524E389222D3A6C007CCFF8 /* utility.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = utility.hpp; sourceTree = "<group>"; };
+		5524E38A222D3A6C007CCFF8 /* priority_queue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = priority_queue.hpp; sourceTree = "<group>"; };
+		5524E38B222D3A6C007CCFF8 /* exceptions.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = exceptions.hpp; sourceTree = "<group>"; };
+		5524E38C222E467D007CCFF8 /* deque.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = deque.hpp; sourceTree = "<group>"; };
+		5524E38D222E468B007CCFF8 /* map.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = map.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +63,11 @@
 			isa = PBXGroup;
 			children = (
 				5524E37F222BFA94007CCFF8 /* main.cpp */,
+				5524E38A222D3A6C007CCFF8 /* priority_queue.hpp */,
+				5524E38C222E467D007CCFF8 /* deque.hpp */,
+				5524E38D222E468B007CCFF8 /* map.hpp */,
+				5524E38B222D3A6C007CCFF8 /* exceptions.hpp */,
+				5524E389222D3A6C007CCFF8 /* utility.hpp */,
 			);
 			path = STLite;
 			sourceTree = "<group>";
