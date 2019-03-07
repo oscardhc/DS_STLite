@@ -8,38 +8,111 @@
 namespace sjtu { 
     
     template<class T>
-    class Block {
-        int sz, cnt;
-        T *mem;
-        Block *nxt, *pre;
-        
+    class Node {
     public:
-        Block(T val):sz(1), cnt(1), mem(new T[1]), nxt(nullptr), pre(nullptr) {
-            
+        T key;
+        Node *nxt, *pre;
+        Node():nxt(nullptr), pre(nullptr) {
         }
-        void doubleSize() {
-            T *tmp = mem;
-            mem = new T[sz << 1];
-            for (int i = 0; i < sz; i++) {
-                mem[i] = tmp[i];
+        Node(T _key):nxt(nullptr), pre(nullptr) {
+            key = _key;
+        }
+        void set(T _key, Node<T>* _nxt, Node<T>* _pre) {
+            key = _key;
+            nxt = _nxt;
+            pre = _pre;
+        }
+    };
+    
+    template<class T>
+    class Block {
+    public:
+        size_t sz;
+        Node<T> *head, *tail;
+        Block *nxt, *pre;
+        Block():sz(0), head(nullptr), tail(nullptr), nxt(nullptr), pre(nullptr) {
+        }
+        Block(T _key):sz(1), nxt(nullptr), pre(nullptr) {
+            head = tail = new Node<T>;
+            head->key = _key;
+        }
+        Block(const Block &other): head(nullptr), tail(nullptr) {
+            sz = other.sz;
+            if (other.sz == 0) {
+                return;
             }
-            delete [] tmp;
+            head = tail = new Node<T>;
+            head->key = other.head->key;
+            Node<T> *ptr = head;
+            Node<T> *cur = other.head;
+            while(cur->nxt != nullptr) {
+                cur = cur->nxt;
+                ptr->nxt = new Node<T>;
+                ptr->nxt->key = cur->key;
+                ptr->nxt->pre = ptr;
+            }
         }
-        Block *splitHalf() {
-            Block *ret = new Block;
-            ret->sz = sz / 2;
-            ret->mem = mem + ret->sz;
-            sz = sz - ret->sz;
+        ~Block() {
+            printf("~~~~~\n");
+            Node<T> *cur = head, *tmp;
+            while(cur != nullptr) {
+                tmp = cur;
+                cur = cur->nxt;
+                delete tmp;
+            }
+        }
+        void insertAt(size_t idx, T _key) {
+            if (idx == 0) {
+                Node<T> *tmp = head;
+                head = new Node<T>;
+                head->set(_key, tmp, nullptr);
+            } else {
+                Node<T> *cur = head, *tmp;
+                while (idx--) {
+                    cur = cur->nxt;
+                }
+                tmp = cur->nxt;
+                cur->nxt = new Node<T>;
+                cur->nxt->set(_key, tmp, cur);
+            }
+        }
+        T & at(const size_t &pos) {
+            Node<T> *cur = head;
+            for (size_t i = 0; i < pos; i++) {
+                cur = cur->nxt;
+            }
+            return cur->key;
+        }
+        const T & at(const size_t &pos) const {
+            Node<T> *cur = head;
+            for (size_t i = 0; i < pos; i++) {
+                cur = cur->nxt;
+            }
+            return cur->key;
+        }
+        void print() {
+            auto cur = head;
+            while (cur != nullptr) {
+                printf("%d ", cur->key);
+                cur = cur->nxt;
+            }
+            printf("\n");
         }
     };
     
     template<class T>
     class deque {
+    private:
+        size_t sz;
+        Block<T> *head, *tail;
+        
     public:
         class const_iterator;
         
         class iterator {
         private:
+            Node<T> *cur;
+            Block<T> *blk;
             /**
              * TODO add data members
              *   just add whatever you want.
@@ -51,7 +124,7 @@ namespace sjtu {
              * as well as operator-
              */
             iterator operator+(const int &n) const {
-                //TODO
+                
             }
             iterator operator-(const int &n) const {
                 //TODO
@@ -124,34 +197,100 @@ namespace sjtu {
         /**
          * TODO Constructors
          */
-        deque() {}
-        deque(const deque &other) {}
+        deque():sz(2) {
+            head = tail = new Block<T>;
+        }
+        deque(const deque &other) {
+            sz = other.sz;
+            head = new Block<T>(*(other.head));
+            Block<T> *ptr = head;
+            Block<T> *cur = other.head;
+            while(cur->nxt != nullptr) {
+                cur = cur->nxt;
+                ptr->nxt = new Block<T>(*cur);
+                ptr->nxt->pre = ptr;
+            }
+        }
         /**
          * TODO Deconstructor
          */
-        ~deque() {}
+        ~deque() {
+            Block<T> *cur = head, *tmp;
+            while(cur != nullptr) {
+                tmp = cur;
+                cur = cur->nxt;
+                delete tmp;
+            }
+        }
         /**
          * TODO assignment operator
          */
-        deque &operator=(const deque &other) {}
+        deque &operator=(const deque &other) {
+            sz = other.sz;
+            head = new Block<T>(*(other.head));
+            Block<T> *ptr = head;
+            Block<T> *cur = other.head;
+            while(cur->nxt != nullptr) {
+                cur = cur->nxt;
+                ptr->nxt = new Block<T>(*cur);
+                ptr->nxt->pre = ptr;
+            }
+            return *this;
+        }
         /**
          * access specified element with bounds checking
          * throw index_out_of_bound if out of bound.
          */
-        T & at(const size_t &pos) {}
-        const T & at(const size_t &pos) const {}
-        T & operator[](const size_t &pos) {}
-        const T & operator[](const size_t &pos) const {}
+        T & at(const size_t &pos) {
+            size_t tmp = pos;
+            if (tmp > sz) {
+                throw index_out_of_bound();
+            }
+            Block<T> *cur = head;
+            while (tmp > cur->sz) {
+                tmp -= cur->sz;
+                cur = cur->nxt;
+            }
+            return cur->at(tmp);
+        }
+        const T & at(const size_t &pos) const {
+            size_t tmp = pos;
+            if (tmp > sz) {
+                throw index_out_of_bound();
+            }
+            Block<T> *cur = head;
+            while (tmp > cur->sz) {
+                tmp -= cur->sz;
+                cur = cur->nxt;
+            }
+            return cur->at(tmp);
+        }
+        T & operator[](const size_t &pos) {
+            return at(pos);
+        }
+        const T & operator[](const size_t &pos) const {
+            return at(pos);
+        }
         /**
          * access the first element
          * throw container_is_empty when the container is empty.
          */
-        const T & front() const {}
+        const T & front() const {
+            if (sz == 0) {
+                throw container_is_empty();
+            }
+            return head->head->key;
+        }
         /**
          * access the last element
          * throw container_is_empty when the container is empty.
          */
-        const T & back() const {}
+        const T & back() const {
+            if (sz == 0) {
+                throw container_is_empty();
+            }
+            return tail->tail->key;
+        }
         /**
          * returns an iterator to the beginning.
          */
