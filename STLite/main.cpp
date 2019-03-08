@@ -35,10 +35,6 @@
 using namespace sjtu;
 
 int main() {
-    Block<int> b1;
-    for (int i = 1;i <= 10;i++) b1.insertAt(0,i);
-    b1.print();
-    b1.insertAt(2, 100);
-    b1.print();
+    deque<int> dq;
     return 0;
 }
