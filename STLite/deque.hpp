@@ -32,17 +32,14 @@ namespace sjtu {
         size_t sz;
         Node<T> *head, *tail;
         Block *nxt, *pre;
-        deque<T> *que;
         Block():sz(0), head(nullptr), tail(nullptr), nxt(nullptr), pre(nullptr) {
         }
-        Block(T _key, deque<T> *_que):sz(1), nxt(nullptr), pre(nullptr) {
+        Block(T _key):sz(1) {
             head = tail = new Node<T>;
-            head->key = _key;
-            que = _que;
+            head->set(_key, nullptr, nullptr);
         }
         Block(const Block &other): head(nullptr), tail(nullptr) {
             sz = other.sz;
-            que = other.que;
             if (other.sz == 0) {
                 return;
             }
@@ -65,6 +62,10 @@ namespace sjtu {
                 cur = cur->nxt;
                 delete tmp;
             }
+        }
+        void initWithValue(T _key) {
+            head = tail = new Node<T>;
+            head->set(_key, nullptr, nullptr);
         }
         void insertAt(size_t idx, T _key) {
             sz = sz + 1;
@@ -96,17 +97,28 @@ namespace sjtu {
             }
             delete tmp;
         }
-        void pushBack(T _key) {
+        void pushBackTwo(T _key) {
             sz = sz + 1;
-            tail->nxt = new Node<T>;
-            tail->nxt->set(_key, nullptr, tail);
-            tail = tail->nxt;
+            if (sz == 1) {
+                initWithValue(_key);
+            } else if (sz == 2) {
+                head = tail->pre = new Node<T>;
+                tail->pre->set(_key, tail, nullptr);
+            } else {
+                tail->pre->nxt = new Node<T>;
+                tail->pre->nxt->set(_key, tail, tail->pre);
+                tail->pre = tail->pre->nxt;
+            }
         }
         void pushFront(T _key) {
             sz = sz + 1;
-            head->pre = new Node<T>;
-            head->pre->set(_key, head, nullptr);
-            head = head->pre;
+            if (sz == 1) {
+                initWithValue(_key);
+            } else {
+                head->pre = new Node<T>;
+                head->pre->set(_key, head, nullptr);
+                head = head->pre;
+            }
         }
         T & at(const size_t &pos) {
             Node<T> *cur = head;
@@ -122,11 +134,11 @@ namespace sjtu {
             head->pre = nullptr;
             delete tmp;
         }
-        void popBack() {
+        void popBackTwo() {
             sz = sz - 1;
-            Node<T> *tmp = tail;
-            tail = tail->pre;
-            tail->nxt = nullptr;
+            Node<T> *tmp = tail->pre;
+            tail->pre = tail->pre->pre;
+            tail->pre->nxt = nullptr;
             delete tmp;
         }
         const T & at(const size_t &pos) const {
@@ -136,13 +148,13 @@ namespace sjtu {
             }
             return cur->key;
         }
-        void print() {
+        void print(char c) {
             auto cur = head;
             while (cur != nullptr) {
                 printf("%d ", cur->key);
                 cur = cur->nxt;
             }
-            printf("\n");
+            printf("%c", c);
         }
     };
 
@@ -381,8 +393,9 @@ namespace sjtu {
         /**
          * TODO Constructors
          */
-        deque():sz(0) {
+        deque():sz(1) {
             head = tail = new Block<T>;
+            head->pushBackTwo(T());
         }
         deque(const deque &other) {
             copyFrom(other);
@@ -439,7 +452,7 @@ namespace sjtu {
          * throw container_is_empty when the container is empty.
          */
         const T & front() const {
-            if (sz == 0) {
+            if (sz == 1) {
                 throw container_is_empty();
             }
             return head->head->key;
@@ -449,16 +462,16 @@ namespace sjtu {
          * throw container_is_empty when the container is empty.
          */
         const T & back() const {
-            if (sz == 0) {
+            if (sz == 1) {
                 throw container_is_empty();
             }
-            return tail->tail->key;
+            return tail->tail->pre->key;
         }
         /**
          * returns an iterator to the beginning.
          */
         iterator begin() {
-            return iterator(head->head, head, 0, 0);
+            return iterator(head->head, head);
         }
         const_iterator cbegin() const {
             
@@ -467,7 +480,7 @@ namespace sjtu {
          * returns an iterator to the end.
          */
         iterator end() {
-            return iterator(tail->tail, tail, tail->sz - 1, sz - 1);
+            return iterator(tail->tail, tail);
         }
         const_iterator cend() const {
             
@@ -499,14 +512,15 @@ namespace sjtu {
          *     throw if the iterator is invalid or it point to a wrong place.
          */
         iterator insert(iterator pos, const T &value) {
+            printf("......%d\n", value);
             Node<T> *nd = new Node<T>;
             nd->key = value;
-            nd->pre = pos->cur->pre;
-            nd->nxt = pos->cur;
-            pos->cur->pre = nd;
-            pos->cur->pre->nxt = nd;
+            nd->pre = pos.cur->pre;
+            nd->nxt = pos.cur;
+            pos.cur->pre->nxt = nd;
+            pos.cur->pre = nd;
             pos.cur = nd;
-            return *this;
+            return pos;
         }
         /**
          * removes specified element at pos.
@@ -519,27 +533,43 @@ namespace sjtu {
             Node<T> *nx = pos.cur->nxt;
             pr->nxt = nx;
             nx->pre = pr;
+            pos.cur = nx;
+            return pos;
         }
         /**
          * adds an element to the end
          */
         void push_back(const T &value) {
-            
+            tail->pushBackTwo(value);
         }
         /**
          * removes the last element
          *     throw when the container is empty.
          */
-        void pop_back() {}
+        void pop_back() {
+            tail->popBackTwo();
+        }
         /**
          * inserts an element to the beginning.
          */
-        void push_front(const T &value) {}
+        void push_front(const T &value) {
+            head->pushFront(value);
+        }
         /**
          * removes the first element.
          *     throw when the container is empty.
          */
-        void pop_front() {}
+        void pop_front() {
+            head->popFront();
+        }
+        void print() {
+            Block<T> *cur = head;
+            while (cur != nullptr) {
+                cur->print(',');
+                cur = cur->nxt;
+            }
+            printf("\n");
+        }
     };
 
 }

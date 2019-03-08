@@ -36,5 +36,17 @@ using namespace sjtu;
 
 int main() {
     deque<int> dq;
+    for(int i = 1; i < 10; i++) {
+        dq.push_back(i);
+        dq.push_front(-i);
+        dq.print();
+    }
+    deque<int>::iterator it = dq.begin();
+    it += 5;
+    dq.insert(it, 100);
+    dq.print();
+    it += 5;
+    dq.erase(it);
+    dq.print();
     return 0;
 }
