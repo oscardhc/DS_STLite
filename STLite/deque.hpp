@@ -36,18 +36,18 @@ namespace sjtu {
         }
     public:
         class iterator {
+        public:
             friend iterator deque::insert(iterator pos, const T &value);
             friend iterator deque::erase(iterator pos);
-        private:
+//        private:
             Block *blk;
             int idx;
             void plus(int n) {
-//                printf("(%d %d %d) ", n, idx, blk->cnt);
+//                printf("...%d %d %d\n", blk->cnt, idx, n);
                 if (blk->cnt - idx > n || (blk == blk->deq->tail && blk->cnt - idx == n)) {
                     idx += n;
                 } else {
                     n -= (blk->cnt - idx);
-                    if (n < 0) return;
                     for (blk = blk->nxt; ; n -= blk->cnt, blk = blk->nxt) {
                         if (n < blk->cnt) {
                             idx = n;
@@ -57,13 +57,14 @@ namespace sjtu {
                 }
             }
             void minus(int n) {
+//                printf("___%d %d %d\n", blk->cnt, idx, n);
                 if (idx >= n) {
                     idx -= n;
                 } else {
                     n -= (idx + 1);
                     for (blk = blk->pre; ; n -= blk->cnt, blk = blk->pre) {
                         if (n < blk->cnt) {
-                            idx = blk->cnt - n;
+                            idx = blk->cnt - n - 1;
                             break;
                         }
                     }
@@ -72,7 +73,7 @@ namespace sjtu {
         public:
             iterator() {}
             iterator(Block *_blk, int _idx): blk(_blk), idx(_idx) {}
-            iterator operator+(const int &n) const {
+            iterator operator+(const int &n) coprintf("~~~~~~\n");nst {
                 iterator tmp = *this;
                 tmp.plus(n);
                 return tmp;
@@ -95,8 +96,8 @@ namespace sjtu {
                 return blk == blk->deq->tail && idx == blk->deq->tail->cnt;
             }
             
-            iterator operator+=(const int &n) {plus(n);return *this;}
-            iterator operator-=(const int &n) {minus(n);return *this;}
+            iterator operator+=(const int &n) {n >= 0 ? plus(n) : minus(-n);return *this;}
+            iterator operator-=(const int &n) {n >= 0 ? minus(n) : plus(-n);return *this;}
             iterator operator++(int) {
                 iterator tmp = *this;
                 plus(1);
