@@ -30,6 +30,9 @@
 		5524E38B222D3A6C007CCFF8 /* exceptions.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = exceptions.hpp; sourceTree = "<group>"; };
 		5524E38C222E467D007CCFF8 /* deque.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = deque.hpp; sourceTree = "<group>"; };
 		5524E38D222E468B007CCFF8 /* map.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = map.hpp; sourceTree = "<group>"; };
+		553D67492232611500F49D9A /* class-matrix.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = "class-matrix.hpp"; path = "distribute/deque/data/class-matrix.hpp"; sourceTree = SOURCE_ROOT; };
+		553D674A2232611500F49D9A /* class-bint.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = "class-bint.hpp"; path = "distribute/deque/data/class-bint.hpp"; sourceTree = SOURCE_ROOT; };
+		553D674B2232611500F49D9A /* class-integer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = "class-integer.hpp"; path = "distribute/deque/data/class-integer.hpp"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,11 +66,14 @@
 			isa = PBXGroup;
 			children = (
 				5524E37F222BFA94007CCFF8 /* main.cpp */,
-				5524E38A222D3A6C007CCFF8 /* priority_queue.hpp */,
 				5524E38C222E467D007CCFF8 /* deque.hpp */,
+				5524E38A222D3A6C007CCFF8 /* priority_queue.hpp */,
 				5524E38D222E468B007CCFF8 /* map.hpp */,
 				5524E38B222D3A6C007CCFF8 /* exceptions.hpp */,
 				5524E389222D3A6C007CCFF8 /* utility.hpp */,
+				553D674A2232611500F49D9A /* class-bint.hpp */,
+				553D674B2232611500F49D9A /* class-integer.hpp */,
+				553D67492232611500F49D9A /* class-matrix.hpp */,
 			);
 			path = STLite;
 			sourceTree = "<group>";

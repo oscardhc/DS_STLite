@@ -4,355 +4,126 @@
 #include "exceptions.hpp"
 
 #include <cstddef>
+#include <iostream>
 
 namespace sjtu {
 
-    template<class T>
-    class Node {
-    public:
-        T key;
-        Node *nxt, *pre;
-        Node():nxt(nullptr), pre(nullptr) {
-        }
-        Node(T _key):nxt(nullptr), pre(nullptr) {
-            key = _key;
-        }
-        void set(T _key, Node<T>* _nxt, Node<T>* _pre) {
-            key = _key;
-            nxt = _nxt;
-            pre = _pre;
-        }
-    };
-
-    template<class T> class deque;
+    const size_t bSize = 256;
     
     template<class T>
-    class Block {
-    public:
-        size_t sz;
-        Node<T> *head, *tail;
-        Block *nxt, *pre;
-        Block():sz(0), head(nullptr), tail(nullptr), nxt(nullptr), pre(nullptr) {
-        }
-        Block(T _key):sz(1) {
-            head = tail = new Node<T>;
-            head->set(_key, nullptr, nullptr);
-        }
-        Block(const Block &other): head(nullptr), tail(nullptr) {
-            sz = other.sz;
-            if (other.sz == 0) {
-                return;
-            }
-            head = tail = new Node<T>;
-            head->key = other.head->key;
-            Node<T> *ptr = head;
-            Node<T> *cur = other.head;
-            while(cur->nxt != nullptr) {
-                cur = cur->nxt;
-                ptr->nxt = new Node<T>;
-                ptr->nxt->key = cur->key;
-                ptr->nxt->pre = ptr;
-            }
-        }
-        ~Block() {
-            printf("~~~~~\n");
-            Node<T> *cur = head, *tmp;
-            while(cur != nullptr) {
-                tmp = cur;
-                cur = cur->nxt;
-                delete tmp;
-            }
-        }
-        void initWithValue(T _key) {
-            head = tail = new Node<T>;
-            head->set(_key, nullptr, nullptr);
-        }
-        void insertAt(size_t idx, T _key) {
-            sz = sz + 1;
-            if (idx == 0) {
-                Node<T> *tmp = head;
-                head = new Node<T>;
-                head->set(_key, tmp, nullptr);
-            } else {
-                Node<T> *cur = head, *tmp;
-                while (idx--) {
-                    cur = cur->nxt;
-                }
-                tmp = cur->nxt;
-                cur->nxt = new Node<T>;
-                cur->nxt->set(_key, tmp, cur);
-            }
-        }
-        void deleteAt(size_t idx) {
-            sz = sz - 1;
-            Node<T> *tmp = head;
-            while (idx--) {
-                tmp = tmp->nxt;
-            }
-            if (tmp->pre != nullptr) {
-                tmp->pre->nxt = tmp->nxt;
-            }
-            if (tmp->nxt != nullptr) {
-                tmp->nxt->pre = tmp->pre;
-            }
-            delete tmp;
-        }
-        void pushBackTwo(T _key) {
-            sz = sz + 1;
-            if (sz == 1) {
-                initWithValue(_key);
-            } else if (sz == 2) {
-                head = tail->pre = new Node<T>;
-                tail->pre->set(_key, tail, nullptr);
-            } else {
-                tail->pre->nxt = new Node<T>;
-                tail->pre->nxt->set(_key, tail, tail->pre);
-                tail->pre = tail->pre->nxt;
-            }
-        }
-        void pushFront(T _key) {
-            sz = sz + 1;
-            if (sz == 1) {
-                initWithValue(_key);
-            } else {
-                head->pre = new Node<T>;
-                head->pre->set(_key, head, nullptr);
-                head = head->pre;
-            }
-        }
-        T & at(const size_t &pos) {
-            Node<T> *cur = head;
-            for (size_t i = 0; i < pos; i++) {
-                cur = cur->nxt;
-            }
-            return cur->key;
-        }
-        void popFront() {
-            sz = sz - 1;
-            Node<T> *tmp = head;
-            head = head->nxt;
-            head->pre = nullptr;
-            delete tmp;
-        }
-        void popBackTwo() {
-            sz = sz - 1;
-            Node<T> *tmp = tail->pre;
-            tail->pre = tail->pre->pre;
-            tail->pre->nxt = nullptr;
-            delete tmp;
-        }
-        const T & at(const size_t &pos) const {
-            Node<T> *cur = head;
-            for (size_t i = 0; i < pos; i++) {
-                cur = cur->nxt;
-            }
-            return cur->key;
-        }
-        void print(char c) {
-            auto cur = head;
-            while (cur != nullptr) {
-                printf("%d ", cur->key);
-                cur = cur->nxt;
-            }
-            printf("%c", c);
-        }
-    };
-
-    template<class T>
     class deque {
-    private:
-        size_t sz;
-        Block<T> *head, *tail;
-
     public:
         class const_iterator;
-
+        class Block;
+    // private:
+        Block *head, *tail;
+        size_t sz;
+        void copyFrom(const deque &other) {
+            sz = other.sz;
+            head = new Block(this);
+            for (int i = 0; i < other.head->cnt; i++) {
+                head->pushBack(*(other.head->at(i)));
+            }
+            Block *ptr = head;
+            for (Block *cur = other.head->nxt; cur != nullptr; cur = cur->nxt, ptr = ptr->nxt) {
+                ptr->nxt = new Block(this);
+                ptr->nxt->pre = ptr;
+                for (int i = 0; i < cur->cnt; i++) {
+                    ptr->nxt->pushBack(*(cur->at(i)));
+                }
+            }
+            tail = ptr;
+        }
+    public:
         class iterator {
-            
             friend iterator deque::insert(iterator pos, const T &value);
             friend iterator deque::erase(iterator pos);
-            
         private:
-            Node<T> *cur;
-            Block<T> *blk;
-            /**
-             * TODO add data members
-             *   just add whatever you want.
-             */
-            size_t getIndexToBlockFront() {
-                size_t ret = 0;
-                Node<T> *tmp = cur;
-                while (tmp != nullptr) {
-                    ret = ret + 1;
-                    tmp = tmp->pre;
-                }
-                return ret;
-            }
-            size_t getIndexToBlockBack() {
-                size_t ret = 0;
-                Node<T> *tmp = cur;
-                while (tmp != nullptr) {
-                    ret = ret + 1;
-                    tmp = tmp->nxt;
-                }
-                return ret - 1;
-            }
-            size_t getIndexToDequeFront() {
-                size_t ret = getIndexToBlockFront();
-                Block<T> *tmp = blk->pre;
-                while (tmp != nullptr) {
-                    ret = ret + tmp->sz;
-                    tmp = tmp->pre;
-                }
-                return ret;
-            }
-            void selfPlus(const int &n) {
-                int pos = n;
-                int idx = getIndexToBlockBack();
-                if (idx >= pos) {
-                    while (pos--) {
-                        cur = cur->nxt;
-                    }
+            Block *blk;
+            int idx;
+            void plus(int n) {
+//                printf("(%d %d %d) ", n, idx, blk->cnt);
+                if (blk->cnt - idx > n || (blk == blk->deq->tail && blk->cnt - idx == n)) {
+                    idx += n;
                 } else {
-                    pos -= idx;
-                    blk = blk->nxt;
-                    while (blk != nullptr && pos > blk->sz) {
-                        pos -= blk->sz;
-                        blk = blk->nxt;
-                    }
-                    cur = blk->head;
-                    while (pos--) {
-                        cur = cur->nxt;
+                    n -= (blk->cnt - idx);
+                    if (n < 0) return;
+                    for (blk = blk->nxt; ; n -= blk->cnt, blk = blk->nxt) {
+                        if (n < blk->cnt) {
+                            idx = n;
+                            break;
+                        }
                     }
                 }
             }
-            void selfMinus(const int &n) {
-                int pos = n;
-                int idx = getIndexToBlockFront();
-                if (idx >= pos) {
-                    while (pos--) {
-                        cur = cur->pre;
-                    }
+            void minus(int n) {
+                if (idx >= n) {
+                    idx -= n;
                 } else {
-                    pos -= idx;
-                    blk = blk->pre;
-                    while (blk != nullptr && pos > blk->sz) {
-                        pos -= blk->sz;
-                        blk = blk->pre;
-                    }
-                    cur = blk->tail;
-                    while (pos--) {
-                        cur = cur->pre;
+                    n -= (idx + 1);
+                    for (blk = blk->pre; ; n -= blk->cnt, blk = blk->pre) {
+                        if (n < blk->cnt) {
+                            idx = blk->cnt - n;
+                            break;
+                        }
                     }
                 }
             }
-            
         public:
-            iterator() {
-                
-            }
-            iterator(Node<T> *_cur, Block<T> *_blk) {
-                cur = _cur;
-                blk = _blk;
-            }
-            /**
-             * return a new iterator which pointer n-next elements
-             *   even if there are not enough elements, the behaviour is **undefined**.
-             * as well as operator-
-             */
+            iterator() {}
+            iterator(Block *_blk, int _idx): blk(_blk), idx(_idx) {}
             iterator operator+(const int &n) const {
-                iterator ret = *this;
-                ret.selfPlus(n);
-                return ret;
+                iterator tmp = *this;
+                tmp.plus(n);
+                return tmp;
             }
             iterator operator-(const int &n) const {
-                iterator ret = *this;
-                ret.selfMinus(n);
-                return ret;
+                iterator tmp = *this;
+                tmp.minus(n);
+                return tmp;
             }
             // return th distance between two iterator,
             // if these two iterators points to different vectors, throw invaild_iterator.
             int operator-(const iterator &rhs) const {
-                if (blk->que != rhs.blk->que) {
-                    throw invalid_iterator();
-                }
-                return getIndexToDequeFront() - rhs.getIndexToDequeFront();
+                if (blk->deq != rhs.blk->deq) throw invalid_iterator();
+                int n = idx;
+                for (Block *cur = blk->pre; cur != nullptr; cur = cur->pre) n += cur->cnt;
+                for (Block *cur = rhs.blk->pre; cur != nullptr; cur = cur->pre) n -= cur->cnt;
+                return n - rhs.idx;
             }
-            iterator operator+=(const int &n) {
-                selfPlus(n);
-                return *this;
+            bool isEnd() {
+                return blk == blk->deq->tail && idx == blk->deq->tail->cnt;
             }
-            iterator operator-=(const int &n) {
-                selfMinus(n);
-                return *this;
-            }
-            /**
-             * TODO iter++
-             */
+            
+            iterator operator+=(const int &n) {plus(n);return *this;}
+            iterator operator-=(const int &n) {minus(n);return *this;}
             iterator operator++(int) {
-                iterator ret = *this;
-                selfPlus(1);
-                return ret;
+                iterator tmp = *this;
+                plus(1);
+                return tmp;
             }
-            /**
-             * TODO ++iter
-             */
-            iterator& operator++() {
-                selfPlus(1);
-                return *this;
-            }
-            /**
-             * TODO iter--
-             */
+            iterator& operator++() {plus(1);return *this;}
             iterator operator--(int) {
-                iterator ret = *this;
-                selfMinus(1);
-                return ret;
+                iterator tmp = *this;
+                minus(1);
+                return tmp;
             }
-            /**
-             * TODO --iter
-             */
-            iterator& operator--() {
-                selfMinus(1);
-                return *this;
-            }
-            /**
-             * TODO *it
-             */
-            T& operator*() const {
-                return cur->key;
-            }
-            /**
-             * TODO it->field
-             */
-            T* operator->() const noexcept {
-                return &(cur->key);
-            }
-            /**
-             * a operator to check whether two iterators are same (pointing to the same memory).
-             */
-            bool operator==(const iterator &rhs) const {
-                return blk == rhs.blk && cur == rhs.cur;
-            }
-            bool operator==(const const_iterator &rhs) const {
-                return blk == rhs.blk && cur == rhs.cur;
-            }
+            iterator& operator--() {minus(1);return *this;}
+            T& operator*() const {return *(blk->at(idx));}
+            T* operator->() const noexcept {return blk->at(idx);}
+            bool operator==(const iterator &rhs) const {return blk == rhs.blk && idx == rhs.idx;}
+            bool operator==(const const_iterator &rhs) const {return blk == rhs.blk && idx == rhs.idx;}
             /**
              * some other operator for iterator.
              */
-            bool operator!=(const iterator &rhs) const {
-                return !(*this == rhs);
-            }
-            bool operator!=(const const_iterator &rhs) const {
-                return !(*this == rhs);
-            }
+            bool operator!=(const iterator &rhs) const {return !(*this == rhs);}
+            bool operator!=(const const_iterator &rhs) const {return !(!this == rhs);}
         };
-        
-        class const_iterator : public iterator {
+        class const_iterator {
             // it should has similar member method as iterator.
             //  and it should be able to construct from an iterator.
         private:
-            // data members.
+            
         public:
             const_iterator() {
                 // TODO
@@ -363,147 +134,214 @@ namespace sjtu {
             const_iterator(const iterator &other) {
                 // TODO
             }
-            T& operator*() const {
-                T ret = T();
-                return ret;
+        };
+
+        class Block {
+        private:
+            T* dat;
+        public:
+            size_t sz, cnt, base;
+            Block *nxt, *pre;
+            deque<T> *deq;
+            inline T* at(int idx) {
+                return dat + (idx + base + sz) % sz;
+            }
+            inline T* atArr(int idx, T* arr) {
+                return arr + (idx + base + sz) % sz;
+            }
+            Block(deque<T> *_deq) {
+                sz = 1;
+                cnt = 0;
+                dat = (T*)operator new(sizeof(T) * sz);
+                deq = _deq;
+                base = 0;
+                nxt = pre = nullptr;
+            }
+            void doubleSpace() {
+                T* tmp = dat;
+                dat = (T*)operator new(sizeof(T) * sz * 2);
+                for (int i = 0; i < cnt; i++) {
+                    new(dat + i) T(*atArr(i, tmp));
+                    atArr(i, tmp)->~T();
+                }
+                operator delete(tmp);
+                base = 0;
+                sz = sz * 2;
+            }
+            ~Block() {
+//                std::cout << this << "   deleted" << std::endl;
+                for (int i = 0; i < cnt; i++) {
+                    at(i)->~T();
+                }
+                operator delete(dat);
+            }
+
+            void pushBack(const T& a) {
+//                std::cout << this << " pushback  " << cnt << std::endl;
+                new(at(cnt)) T(a);
+                cnt = cnt + 1;
+                if (cnt == sz) {
+                    if (sz < bSize) doubleSpace();
+                    else split(0);
+                }
+            }
+            void pushFront(const T& a) {
+//                std::cout << this << " pushfront" << std::endl;
+                new(at(-1)) T(a);
+                cnt = cnt + 1;
+                base = (base - 1 + sz) % sz;
+                if (cnt == sz) {
+                    if (sz < bSize) doubleSpace();
+                    else split(0);
+                }
+            }
+            void popBack() {
+//                std::cout << this << " popback" << std::endl;
+                cnt = cnt - 1;
+                at(cnt)->~T();
+                if (this != deq->tail && cnt + nxt->cnt <= bSize / 2) combi();
+                if (this == deq->tail && cnt == 0 && this != deq->head) {
+                    pre->combi();
+                }
+            }
+            void popFront() {
+//                std::cout << this << " popfront " << cnt << " " << nxt->cnt << std::endl;
+                at(0)->~T();
+                cnt = cnt - 1;
+                base = (base + 1) % sz;
+                if (this != deq->tail && cnt + nxt->cnt <= bSize / 2) combi();
+                if (this == deq->tail && cnt == 0 && this != deq->head) {
+                    pre->combi();
+                }
+            }
+            void print() {
+//                for (int i = 0; i < cnt; i++) {
+//                    std::cout << (*at(i)) << " ";
+//                }
+//                std::cout << std::endl;
+            }
+            iterator split(int idx) {
+//                std::cout << "\nSPLIT!" << std::endl;
+                Block *tmp = new Block(deq);
+                tmp->nxt = nxt;
+                tmp->pre = this;
+                if (nxt != nullptr) nxt->pre = tmp;
+                else deq->tail = tmp;
+                nxt = tmp;
+                for (size_t i = sz / 2; i < sz; i++) {
+                    nxt->pushBack(*at(i));
+                    at(i)->~T();
+                }
+                cnt -= (sz - sz / 2);
+                
+                if (idx < cnt) {
+                    return iterator(this, idx);
+                } else {
+                    return iterator(nxt, idx - cnt);
+                }
+            }
+            void combi() {
+//                std::cout << "\nCOMBI!" << std::endl;
+                for (int i = 0; i < nxt->cnt; i++) {
+                    pushBack(*(nxt->at(i)));
+                }
+//                deq->print();
+                if (nxt == deq->tail) deq->tail = this;
+                else nxt->nxt->pre = this;
+                Block *tmp = nxt;
+                nxt = nxt->nxt;
+                delete tmp;
+            }
+            iterator insAt(int idx, const T& a) {
+                for (int i = cnt - 1; i >= idx; i--) {
+                    new(at(i + 1)) T(*at(i));
+                    at(i)->~T();
+                }
+                new(at(idx)) T(a);
+                cnt = cnt + 1;
+                if (cnt == sz) {
+                    if (sz < bSize) doubleSpace();
+                    else return split(idx);
+                }
+                return iterator(this, idx);
+            }
+            iterator delAt(int idx) {
+                at(idx)->~T();
+                for (int i = idx; i < cnt - 1; i++) {
+                    new(at(i)) T(*at(i + 1));
+                    at(i + 1)->~T();
+                }
+                cnt = cnt - 1;
+                if (this != deq->tail && cnt + nxt->cnt <= bSize / 2) combi();
+                if (this == deq->tail && cnt == 0 && this != deq->head) {
+                    Block* tmp = pre;
+                    tmp->combi();
+                    return iterator(tmp, idx + tmp->cnt);
+                } else return iterator(this, idx);
             }
         };
-        
-    private:
-        void copyFrom(const deque &other) {
-            sz = other.sz;
-            head = new Block<T>(*(other.head));
-            Block<T> *ptr = head;
-            Block<T> *cur = other.head;
-            while(cur->nxt != nullptr) {
-                cur = cur->nxt;
-                ptr->nxt = new Block<T>(*cur, this);
-                ptr->nxt->pre = ptr;
-            }
+        deque() {
+            head = tail = new Block(this);
+            sz = 0;
         }
-        void deconstruct() {
-            Block<T> *cur = head, *tmp;
-            while(cur != nullptr) {
-                tmp = cur;
-                cur = cur->nxt;
+        deque(const deque &other) {copyFrom(other);}
+        ~deque() {
+//            print();
+            for (Block *cur = head; cur != nullptr;) {
+//                std::cout << cur << " " << cur->sz << std::endl;
+                Block *tmp = cur;
+                cur = cur -> nxt;
                 delete tmp;
             }
         }
-    public:
-        /**
-         * TODO Constructors
-         */
-        deque():sz(1) {
-            head = tail = new Block<T>;
-            head->pushBackTwo(T());
-        }
-        deque(const deque &other) {
-            copyFrom(other);
-        }
-        /**
-         * TODO Deconstructor
-         */
-        ~deque() {
-            deconstruct();
-        }
-        /**
-         * TODO assignment operator
-         */
         deque &operator=(const deque &other) {
+            if (&other == this) {
+                return *this;
+            }
+            this->~deque<T>();
             copyFrom(other);
             return *this;
         }
-        /**
-         * access specified element with bounds checking
-         * throw index_out_of_bound if out of bound.
-         */
         T & at(const size_t &pos) {
-            size_t tmp = pos;
-            if (tmp > sz) {
-                throw index_out_of_bound();
+            size_t n = pos;
+            for (Block *cur = head; cur != nullptr; n = n - cur->cnt, cur = cur -> nxt) {
+                if (cur->cnt > n) return *(cur->at(n));
             }
-            Block<T> *cur = head;
-            while (tmp >= cur->sz) {
-                tmp -= cur->sz;
-                cur = cur->nxt;
-            }
-            return cur->at(tmp);
+            throw index_out_of_bound();
         }
-        const T & at(const size_t &pos) const {
-            size_t tmp = pos;
-            if (tmp > sz) {
-                throw index_out_of_bound();
-            }
-            Block<T> *cur = head;
-            while (tmp >= cur->sz) {
-                tmp -= cur->sz;
-                cur = cur->nxt;
-            }
-            return cur->at(tmp);
-        }
-        T & operator[](const size_t &pos) {
-            return at(pos);
-        }
-        const T & operator[](const size_t &pos) const {
-            return at(pos);
-        }
+        const T & at(const size_t &pos) const {return at(pos);}
+        T & operator[](const size_t &pos) {return at(pos);}
+        const T & operator[](const size_t &pos) const {return at(pos);}
         /**
          * access the first element
          * throw container_is_empty when the container is empty.
          */
         const T & front() const {
-            if (sz == 1) {
-                throw container_is_empty();
-            }
-            return head->head->key;
+            if (empty()) throw container_is_empty();
+            return *(head->at(0));
         }
         /**
          * access the last element
          * throw container_is_empty when the container is empty.
          */
         const T & back() const {
-            if (sz == 1) {
-                throw container_is_empty();
-            }
-            return tail->tail->pre->key;
+            if (empty()) throw container_is_empty();
+            return *(tail->at(tail->cnt - 1));
         }
         /**
          * returns an iterator to the beginning.
          */
-        iterator begin() {
-            return iterator(head->head, head);
-        }
-        const_iterator cbegin() const {
-            
-        }
-        /**
-         * returns an iterator to the end.
-         */
-        iterator end() {
-            return iterator(tail->tail, tail);
-        }
-        const_iterator cend() const {
-            
-        }
-        /**
-         * checks whether the container is empty.
-         */
-        bool empty() const {
-            return sz == 0;
-        }
-        /**
-         * returns the number of elements
-         */
-        size_t size() const {
-            return sz;
-        }
-        /**
-         * clears the contents
-         */
+        iterator begin() {return iterator(head, 0);}
+        const_iterator cbegin() const {}
+        iterator end() {return iterator(tail, tail->cnt);}
+        const_iterator cend() const {}
+        
+        bool empty() const {return sz == 0;}
+        size_t size() const {return sz;}
         void clear() {
-            deconstruct();
+            this->~deque<T>();
+            head = tail = new Block(this);
             sz = 0;
-            head = tail = new Block<T>;
         }
         /**
          * inserts elements at the specified locat on in the container.
@@ -512,15 +350,13 @@ namespace sjtu {
          *     throw if the iterator is invalid or it point to a wrong place.
          */
         iterator insert(iterator pos, const T &value) {
-            printf("......%d\n", value);
-            Node<T> *nd = new Node<T>;
-            nd->key = value;
-            nd->pre = pos.cur->pre;
-            nd->nxt = pos.cur;
-            pos.cur->pre->nxt = nd;
-            pos.cur->pre = nd;
-            pos.cur = nd;
-            return pos;
+            sz++;
+            if (pos.isEnd()) {
+                tail->pushBack(value);
+                return iterator(tail, tail->cnt - 1);
+            } else {
+                return pos.blk->insAt(pos.idx, value);
+            }
         }
         /**
          * removes specified element at pos.
@@ -529,49 +365,35 @@ namespace sjtu {
          * throw if the container is empty, the iterator is invalid or it points to a wrong place.
          */
         iterator erase(iterator pos) {
-            Node<T> *pr = pos.cur->pre;
-            Node<T> *nx = pos.cur->nxt;
-            pr->nxt = nx;
-            nx->pre = pr;
-            pos.cur = nx;
-            return pos;
+            sz--;
+            return pos.blk->delAt(pos.idx);
         }
-        /**
-         * adds an element to the end
-         */
         void push_back(const T &value) {
-            tail->pushBackTwo(value);
+            sz++;
+            tail->pushBack(value);
         }
-        /**
-         * removes the last element
-         *     throw when the container is empty.
-         */
         void pop_back() {
-            tail->popBackTwo();
+            sz--;
+            tail->popBack();
         }
-        /**
-         * inserts an element to the beginning.
-         */
         void push_front(const T &value) {
+            sz++;
             head->pushFront(value);
         }
-        /**
-         * removes the first element.
-         *     throw when the container is empty.
-         */
         void pop_front() {
+            sz--;
             head->popFront();
         }
         void print() {
-            Block<T> *cur = head;
-            while (cur != nullptr) {
-                cur->print(',');
-                cur = cur->nxt;
+            std::cout << head << " _____ " << tail << std::endl;
+            for (Block *cur = head; cur != nullptr; cur = cur->nxt) {
+                std::cout << cur << "  " << cur->nxt << "  " << cur->cnt << "  " << cur->sz << std::endl;
+//                cur->print();
             }
-            printf("\n");
+            std::cout << std::endl;
         }
     };
-
+    
 }
 
 #endif
