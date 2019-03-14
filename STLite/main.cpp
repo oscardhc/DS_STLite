@@ -11,7 +11,7 @@
 //std::default_random_engine randnum(time(NULL));
 
 static const int N = 10000;
-static const int N_SPEED = 33500;
+static const int N_SPEED = 200000;
 
 typedef std::pair<const char *, std::pair<bool, double> (*)()> CheckerPair;
 
@@ -1497,8 +1497,8 @@ static CheckerPair TEST_B[] = {
     std::make_pair("Equal Operator", equalOperatorTimer),
 };
 
-#define __CORRECT_TEST
-#define __OFFICAL
+#define __SPEED_TEST
+//#define __OFFICAL
 
 int main() {
 #ifndef __OFFICAL

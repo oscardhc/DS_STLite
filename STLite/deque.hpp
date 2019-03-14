@@ -7,15 +7,14 @@
 #include <iostream>
 
 namespace sjtu {
-
+    
     const size_t bSize = 512;
     
     template<class T>
     class deque {
     public:
-        class const_iterator;
         class Block;
-    // private:
+    private:
         Block *head, *tail;
         size_t sz;
         void copyFrom(const deque &other) {
@@ -36,38 +35,36 @@ namespace sjtu {
         }
     public:
         class iterator {
-        public:
             friend iterator deque::insert(iterator pos, const T &value);
             friend iterator deque::erase(iterator pos);
-//        private:
+        private:
             Block *blk;
             int idx;
             void plus(int n) {
-//                printf("...%d %d %d\n", blk->cnt, idx, n);
-                if (blk->cnt - idx > n || (blk == blk->deq->tail && blk->cnt - idx == n)) {
-                    idx += n;
-                } else {
+                if (blk->cnt - idx > n || (blk == blk->deq->tail && blk->cnt - idx == n)) idx += n;
+                else {
                     n -= (blk->cnt - idx);
-                    for (blk = blk->nxt; ; n -= blk->cnt, blk = blk->nxt) {
-                        if (n < blk->cnt) {
+                    for (blk = blk->nxt; blk != nullptr; n -= blk->cnt, blk = blk->nxt) {
+                        if (n < blk->cnt || (blk == blk->deq->tail && n <= blk->cnt)) {
                             idx = n;
-                            break;
+                            return;
                         }
                     }
+                    throw runtime_error();
                 }
             }
             void minus(int n) {
-//                printf("___%d %d %d\n", blk->cnt, idx, n);
                 if (idx >= n) {
                     idx -= n;
                 } else {
                     n -= (idx + 1);
-                    for (blk = blk->pre; ; n -= blk->cnt, blk = blk->pre) {
+                    for (blk = blk->pre; blk != nullptr; n -= blk->cnt, blk = blk->pre) {
                         if (n < blk->cnt) {
                             idx = blk->cnt - n - 1;
-                            break;
+                            return;
                         }
                     }
+                    throw runtime_error();
                 }
             }
         public:
@@ -83,8 +80,6 @@ namespace sjtu {
                 n >= 0 ? tmp.minus(n) : tmp.plus(-n);
                 return tmp;
             }
-            // return th distance between two iterator,
-            // if these two iterators points to different vectors, throw invaild_iterator.
             int operator-(const iterator &rhs) const {
                 if (blk->deq != rhs.blk->deq) throw invalid_iterator();
                 int n = idx;
@@ -92,7 +87,7 @@ namespace sjtu {
                 for (Block *cur = rhs.blk->pre; cur != nullptr; cur = cur->pre) n -= cur->cnt;
                 return n - rhs.idx;
             }
-            bool isEnd() {
+            bool isEnd() const {
                 return blk == blk->deq->tail && idx == blk->deq->tail->cnt;
             }
             
@@ -110,33 +105,21 @@ namespace sjtu {
                 return tmp;
             }
             iterator& operator--() {minus(1);return *this;}
-            T& operator*() const {return *(blk->at(idx));}
-            T* operator->() const noexcept {return blk->at(idx);}
-            bool operator==(const iterator &rhs) const {return blk == rhs.blk && idx == rhs.idx;}
-            bool operator==(const const_iterator &rhs) const {return blk == rhs.blk && idx == rhs.idx;}
-            /**
-             * some other operator for iterator.
-             */
+            T& operator*() const {
+                if (isEnd()) throw runtime_error();
+                return *(blk->at(idx));
+            }
+            T* operator->() const noexcept {
+                if (isEnd()) throw runtime_error();
+                return (blk->at(idx));
+            }
+            bool operator==(const iterator &rhs) const {
+                return blk == rhs.blk && idx == rhs.idx;
+            }
             bool operator!=(const iterator &rhs) const {return !(*this == rhs);}
-            bool operator!=(const const_iterator &rhs) const {return !(!this == rhs);}
         };
-        class const_iterator {
-            // it should has similar member method as iterator.
-            //  and it should be able to construct from an iterator.
-        private:
-            
-        public:
-            const_iterator() {
-                // TODO
-            }
-            const_iterator(const const_iterator &other) {
-                // TODO
-            }
-            const_iterator(const iterator &other) {
-                // TODO
-            }
-        };
-
+        using const_iterator = iterator;
+        
         class Block {
         private:
             T* dat;
@@ -170,15 +153,13 @@ namespace sjtu {
                 sz = sz * 2;
             }
             ~Block() {
-//                std::cout << this << "   deleted" << std::endl;
                 for (int i = 0; i < cnt; i++) {
                     at(i)->~T();
                 }
                 operator delete(dat);
             }
-
+            
             void pushBack(const T& a) {
-//                std::cout << this << " pushback  " << cnt << std::endl;
                 new(at(cnt)) T(a);
                 cnt = cnt + 1;
                 if (cnt == sz) {
@@ -187,7 +168,6 @@ namespace sjtu {
                 }
             }
             void pushFront(const T& a) {
-//                std::cout << this << " pushfront" << std::endl;
                 new(at(-1)) T(a);
                 cnt = cnt + 1;
                 base = (base - 1 + sz) % sz;
@@ -197,32 +177,23 @@ namespace sjtu {
                 }
             }
             void popBack() {
-//                std::cout << this << " popback" << std::endl;
                 cnt = cnt - 1;
                 at(cnt)->~T();
-                if (this != deq->tail && cnt + nxt->cnt <= bSize / 2) combi();
+                if (this != deq->tail && cnt + nxt->cnt <= bSize * 2 / 3) combi();
                 if (this == deq->tail && cnt == 0 && this != deq->head) {
                     pre->combi();
                 }
             }
             void popFront() {
-//                std::cout << this << " popfront " << cnt << " " << nxt->cnt << std::endl;
                 at(0)->~T();
                 cnt = cnt - 1;
                 base = (base + 1) % sz;
-                if (this != deq->tail && cnt + nxt->cnt <= bSize / 2) combi();
+                if (this != deq->tail && (cnt + nxt->cnt <= bSize * 2 / 3 || cnt == 0)) combi();
                 if (this == deq->tail && cnt == 0 && this != deq->head) {
                     pre->combi();
                 }
             }
-            void print() {
-//                for (int i = 0; i < cnt; i++) {
-//                    std::cout << (*at(i)) << " ";
-//                }
-//                std::cout << std::endl;
-            }
             iterator split(int idx) {
-//                std::cout << "\nSPLIT!" << std::endl;
                 Block *tmp = new Block(deq);
                 tmp->nxt = nxt;
                 tmp->pre = this;
@@ -242,11 +213,9 @@ namespace sjtu {
                 }
             }
             void combi() {
-//                std::cout << "\nCOMBI!" << std::endl;
                 for (int i = 0; i < nxt->cnt; i++) {
                     pushBack(*(nxt->at(i)));
                 }
-//                deq->print();
                 if (nxt == deq->tail) deq->tail = this;
                 else nxt->nxt->pre = this;
                 Block *tmp = nxt;
@@ -273,12 +242,15 @@ namespace sjtu {
                     at(i + 1)->~T();
                 }
                 cnt = cnt - 1;
-                if (this != deq->tail && cnt + nxt->cnt <= bSize / 2) combi();
+                if (this != deq->tail && cnt + nxt->cnt <= bSize * 2 / 3) combi();
                 if (this == deq->tail && cnt == 0 && this != deq->head) {
                     Block* tmp = pre;
                     tmp->combi();
                     return iterator(tmp, idx + tmp->cnt);
-                } else return iterator(this, idx);
+                } else {
+                    if (idx < cnt || this == deq->tail) return iterator(this, idx);
+                    else return iterator(nxt, 0);
+                }
             }
         };
         deque() {
@@ -287,9 +259,7 @@ namespace sjtu {
         }
         deque(const deque &other) {copyFrom(other);}
         ~deque() {
-//            print();
             for (Block *cur = head; cur != nullptr;) {
-//                std::cout << cur << " " << cur->sz << std::endl;
                 Block *tmp = cur;
                 cur = cur -> nxt;
                 delete tmp;
@@ -310,32 +280,27 @@ namespace sjtu {
             }
             throw index_out_of_bound();
         }
-        const T & at(const size_t &pos) const {return at(pos);}
+        const T & at(const size_t &pos) const {
+            size_t n = pos;
+            for (Block *cur = head; cur != nullptr; n = n - cur->cnt, cur = cur -> nxt) {
+                if (cur->cnt > n) return *(cur->at(n));
+            }
+            throw index_out_of_bound();
+        }
         T & operator[](const size_t &pos) {return at(pos);}
         const T & operator[](const size_t &pos) const {return at(pos);}
-        /**
-         * access the first element
-         * throw container_is_empty when the container is empty.
-         */
         const T & front() const {
             if (empty()) throw container_is_empty();
             return *(head->at(0));
         }
-        /**
-         * access the last element
-         * throw container_is_empty when the container is empty.
-         */
         const T & back() const {
             if (empty()) throw container_is_empty();
             return *(tail->at(tail->cnt - 1));
         }
-        /**
-         * returns an iterator to the beginning.
-         */
         iterator begin() {return iterator(head, 0);}
-        const_iterator cbegin() const {}
+        const_iterator cbegin() const {return const_iterator(head, 0);}
         iterator end() {return iterator(tail, tail->cnt);}
-        const_iterator cend() const {}
+        const_iterator cend() const {return const_iterator(tail, tail->cnt);}
         
         bool empty() const {return sz == 0;}
         size_t size() const {return sz;}
@@ -344,13 +309,8 @@ namespace sjtu {
             head = tail = new Block(this);
             sz = 0;
         }
-        /**
-         * inserts elements at the specified locat on in the container.
-         * inserts value before pos
-         * returns an iterator pointing to the inserted value
-         *     throw if the iterator is invalid or it point to a wrong place.
-         */
         iterator insert(iterator pos, const T &value) {
+            if (pos.blk->deq != this) throw runtime_error();
             sz++;
             if (pos.isEnd()) {
                 tail->pushBack(value);
@@ -359,13 +319,8 @@ namespace sjtu {
                 return pos.blk->insAt(pos.idx, value);
             }
         }
-        /**
-         * removes specified element at pos.
-         * removes the element at pos.
-         * returns an iterator pointing to the following element, if pos pointing to the last element, end() will be returned.
-         * throw if the container is empty, the iterator is invalid or it points to a wrong place.
-         */
         iterator erase(iterator pos) {
+            if (pos.blk->deq != this || pos.isEnd()) throw runtime_error();
             sz--;
             return pos.blk->delAt(pos.idx);
         }
@@ -384,14 +339,6 @@ namespace sjtu {
         void pop_front() {
             sz--;
             head->popFront();
-        }
-        void print() {
-            std::cout << head << " _____ " << tail << std::endl;
-            for (Block *cur = head; cur != nullptr; cur = cur->nxt) {
-                std::cout << cur << "  " << cur->nxt << "  " << cur->cnt << "  " << cur->sz << std::endl;
-//                cur->print();
-            }
-            std::cout << std::endl;
         }
     };
     
