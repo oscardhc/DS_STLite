@@ -8,7 +8,7 @@
 
 namespace sjtu {
 
-    const size_t bSize = 256;
+    const size_t bSize = 512;
     
     template<class T>
     class deque {
@@ -73,14 +73,14 @@ namespace sjtu {
         public:
             iterator() {}
             iterator(Block *_blk, int _idx): blk(_blk), idx(_idx) {}
-            iterator operator+(const int &n) coprintf("~~~~~~\n");nst {
+            iterator operator+(const int &n) const {
                 iterator tmp = *this;
-                tmp.plus(n);
+                n >= 0? tmp.plus(n) : tmp.minus(-n);
                 return tmp;
             }
             iterator operator-(const int &n) const {
                 iterator tmp = *this;
-                tmp.minus(n);
+                n >= 0 ? tmp.minus(n) : tmp.plus(-n);
                 return tmp;
             }
             // return th distance between two iterator,
