@@ -14,35 +14,38 @@ namespace sjtu {
         x = z;
     }
     
-    template <class T>
-    class PQNode {
-    public:
-        T key;
-        int height;
-        PQNode *left, *right;
-        PQNode(T _key = T()): key(_key), height(1), left(nullptr), right(nullptr) {
-            
-        }
-        PQNode(const PQNode &other) {
-            key = other.key;
-            height = other.height;
-            left = nullptr;
-            right = nullptr;
-        }
-    };
-    
     /**
      * a container like std::priority_queue which is a heap internal.
      * it should be based on the vector written by yourself.
      */
-    template<typename T, class Compare = std::less<T>>
+    template<class T, class Compare = std::less<T>>
     class priority_queue {
+        
+        class PQNode {
+        public:
+            T *key;
+            int height;
+            PQNode *left, *right;
+            PQNode(const T &_key): height(1), left(nullptr), right(nullptr) {
+                key = new T(_key);
+            }
+            PQNode(const PQNode &other) {
+                key = new T(*(other.key));
+                height = other.height;
+                left = nullptr;
+                right = nullptr;
+            }
+            ~PQNode() {
+                delete key;
+            }
+        };
+        
     private:
-        PQNode<T> *head;
+        PQNode *head;
         size_t Size;
         Compare cmp;
         
-        void deconstruct(PQNode<T> *cur) {
+        void deconstruct(PQNode *cur) {
             if (cur->left != nullptr) {
                 deconstruct(cur->left);
             }
@@ -51,14 +54,14 @@ namespace sjtu {
             }
             delete cur;
         }
-        PQNode<T> *_merge(PQNode<T> *x, PQNode<T> *y) {
+        PQNode *_merge(PQNode *x, PQNode *y) {
             if (x == nullptr) {
                 return y;
             }
             if (y == nullptr) {
                 return x;
             }
-            if (y == nullptr || cmp(x->key, y->key)) {
+            if (y == nullptr || cmp(*(x->key), *(y->key))) {
                 swap(x, y);
             }
             x->right = _merge(x->right, y);
@@ -73,16 +76,13 @@ namespace sjtu {
             }
             return x;
         }
-        void copyTree(PQNode<T> *cur, PQNode<T> *tar) {
-//            printf("copyTree... %d %d\n", cur->key, tar->key);
+        void copyTree(PQNode *cur, PQNode *tar) {
             if (tar->left != nullptr) {
-                cur->left = new PQNode<T>;
-                *(cur->left) = *(tar->left);
+                cur->left = new PQNode(*(tar->left));
                 copyTree(cur->left, tar->left);
             }
             if (tar->right != nullptr) {
-                cur->right = new PQNode<T>;
-                *(cur->right) = *(tar->right);
+                cur->right = new PQNode(*(tar->right));
                 copyTree(cur->right, tar->right);
             }
         }
@@ -95,15 +95,14 @@ namespace sjtu {
         }
         priority_queue(const priority_queue &other) {
             Size = other.Size;
-            head = new PQNode<T>;
-            *(head) = *(other.head);
+            head = new PQNode(*(other.head));
             copyTree(head, other.head);
         }
         /**
          * TODO deconstructor
          */
         priority_queue(T _key) {
-            head = new PQNode<T>(_key);
+            head = new PQNode(_key);
             Size = 1;
         }
         ~priority_queue() {
@@ -115,9 +114,9 @@ namespace sjtu {
             if (other.head == head) {
                 return *this;
             }
+            if (head != nullptr) deconstruct(head);
             Size = other.Size;
-            head = new PQNode<T>;
-            *(head) = *(other.head);
+            head = new PQNode(*(other.head));
             copyTree(head, other.head);
             return *this;
         }
@@ -130,14 +129,14 @@ namespace sjtu {
             if (empty()) {
                 throw container_is_empty();
             }
-            return head->key;
+            return *(head->key);
         }
         /**
          * TODO
          * push new element to the priority queue.
          */
         void push(const T &_key) {
-            PQNode<T> *newNode = new PQNode<T>(_key);
+            PQNode *newNode = new PQNode(_key);
             head = _merge(head, newNode);
             Size = Size + 1;
         }
@@ -150,7 +149,7 @@ namespace sjtu {
             if (empty()) {
                 throw container_is_empty();
             }
-            PQNode<T> *temp = head;
+            PQNode *temp = head;
             head = _merge(head->left, head->right);
             Size = Size - 1;
             delete temp;
