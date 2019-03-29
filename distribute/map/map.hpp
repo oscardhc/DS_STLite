@@ -13,9 +13,9 @@
 namespace sjtu {
 
 template<
-	class Key,
+	class K,
 	class T,
-	class Compare = std::less<Key>
+	class Compare = std::less<K>
 > class map {
 public:
 	/**
@@ -23,7 +23,22 @@ public:
 	 * it should have a default constructor, a copy constructor.
 	 * You can use sjtu::map as value_type by typedef.
 	 */
-	typedef pair<const Key, T> value_type;
+	typedef pair<const K, T> value_type;
+    
+    class RBTree {
+        class Node {
+            K* key;
+            T* value;
+            bool color;
+            Node *f;
+            Node *s[2];
+            Node() {
+                f = s[0] = s[1] = nullptr;
+                
+            }
+        }
+    }
+    
 	/**
 	 * see BidirectionalIterator at CppReference for help.
 	 *
@@ -122,19 +137,19 @@ public:
 	 * Returns a reference to the mapped value of the element with key equivalent to key.
 	 * If no such element exists, an exception of type `index_out_of_bound'
 	 */
-	T & at(const Key &key) {}
-	const T & at(const Key &key) const {}
+	T & at(const K &key) {}
+	const T & at(const K &key) const {}
 	/**
 	 * TODO
 	 * access specified element 
 	 * Returns a reference to the value that is mapped to a key equivalent to key,
 	 *   performing an insertion if such key does not already exist.
 	 */
-	T & operator[](const Key &key) {}
+	T & operator[](const K &key) {}
 	/**
 	 * behave like at() throw index_out_of_bound if such key does not exist.
 	 */
-	const T & operator[](const Key &key) const {}
+	const T & operator[](const K &key) const {}
 	/**
 	 * return a iterator to the beginning
 	 */
@@ -179,15 +194,15 @@ public:
 	 *     since this container does not allow duplicates.
 	 * The default method of check the equivalence is !(a < b || b > a)
 	 */
-	size_t count(const Key &key) const {}
+	size_t count(const K &key) const {}
 	/**
 	 * Finds an element with key equivalent to key.
 	 * key value of the element to search for.
 	 * Iterator to an element with key equivalent to key.
 	 *   If no such element is found, past-the-end (see end()) iterator is returned.
 	 */
-	iterator find(const Key &key) {}
-	const_iterator find(const Key &key) const {}
+	iterator find(const K &key) {}
+	const_iterator find(const K &key) const {}
 };
 
 }
