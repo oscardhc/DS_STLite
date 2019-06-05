@@ -166,7 +166,7 @@ namespace sjtu {
                 Node* nx = _nxt(cur);
                 if (pr != nullptr) pr->nxt = nx;
                 if (nx != nullptr) nx->pre = pr;
-
+                
                 x->f = cur->f;
                 if (cur->f == nil) root = x;
                 else cur->f->s[cur->f->s[1] == cur] = x;
@@ -174,26 +174,26 @@ namespace sjtu {
                 Node *tmpf = nil->f;
                 int CURC = cur->c;
                 
-               if (cur != fnd) {
-
+                if (cur != fnd) {
+                    
                     if (fnd->f != nil) fnd->f->s[fnd->f->s[1] == fnd] = cur;
                     else root = cur;
-
+                    
                     if (fnd->nxt != nullptr) fnd->nxt->pre = cur;
                     cur->nxt = fnd->nxt;
                     if (fnd->pre != nullptr) fnd->pre->nxt = cur;
                     cur->pre = fnd->pre;
-
+                    
                     cur->c = fnd->c;
-
+                    
                     fnd->s[0]->f = cur;
                     fnd->s[1]->f = cur;
-
+                    
                     cur->f = fnd->f;
-
+                    
                     cur->s[0] = fnd->s[0];
                     cur->s[1] = fnd->s[1];
-
+                    
                 }
                 
                 if (tmpf == fnd) nil->f = cur;
@@ -298,7 +298,7 @@ namespace sjtu {
                 return cur == nil ? nullptr : cur;
             }
         };
-
+        
         /**
          * see BidirectionalIterator at CppReference for help.
          *
@@ -306,14 +306,11 @@ namespace sjtu {
          *     like it = map.begin(); --it;
          *       or it = map.end(); ++end();
          */
+        class const_iterator;
         class iterator {
             friend void map::erase(iterator pos);
-//        private:
-        public:
-            /**
-             * TODO add data members
-             *   just add whatever you want.
-             */
+            friend const_iterator;
+        private:
             typename RBTree::Node *cur;
             bool end;
             
@@ -330,28 +327,15 @@ namespace sjtu {
                 cur = other.cur;
                 end = other.end;
             }
-            /**
-             * return a new iterator which pointer n-next elements
-             *   even if there are not enough elements, just return the answer.
-             * as well as operator-
-             */
-            /**
-             * TODO iter++
-             */
             iterator operator++(int) {
                 iterator tmp = iterator(*this);
                 static typename RBTree::Node* hhh = nullptr;
-//                printf("~~~~~~ %lld %lld %d\n", cur, cur->nxt, end);
                 if (!end) hhh = cur->nxt;
                 else throw index_out_of_bound();
                 if (hhh == nullptr) end = 1;
                 else cur = hhh;
-//                printf("------ %lld %lld    %lld %lld\n", tmp.cur, cur, tmp->first, (*this)->first);
                 return tmp;
             }
-            /**
-             * TODO ++iter
-             */
             iterator & operator++() {
                 static typename RBTree::Node* hhh;
                 if (!end) hhh = cur->nxt;
@@ -360,9 +344,6 @@ namespace sjtu {
                 else cur = hhh;
                 return *this;
             }
-            /**
-             * TODO iter--
-             */
             iterator operator--(int) {
                 iterator tmp = iterator(*this);
                 if (end) {
@@ -375,11 +356,7 @@ namespace sjtu {
                 }
                 return tmp;
             }
-            /**
-             * TODO --iter
-             */
             iterator & operator--() {
-                
                 if (end) {
                     if (cur->tr->sz == 0) throw index_out_of_bound();
                     end = 0;
@@ -390,50 +367,102 @@ namespace sjtu {
                 }
                 return *this;
             }
-            /**
-             * a operator to check whether two iterators are same (pointing to the same memory).
-             */
             value_type & operator*() const {
+                return cur->dat;
+            }
+            bool operator==(const const_iterator &rhs) const {
+                return (cur == rhs.cur && end == rhs.end) || (end && end == rhs.end && cur->tr == rhs.cur->tr);
+            }
+            bool operator==(const iterator &rhs) const {
+                return (cur == rhs.cur && end == rhs.end) || (end && end == rhs.end && cur->tr == rhs.cur->tr);
+            }
+            bool operator!=(const const_iterator &rhs) const {return !(*this == rhs);}
+            bool operator!=(const iterator &rhs) const {return !(*this == rhs);}
+            value_type* operator->() const noexcept {
+                return &(this->operator*());
+            }
+        };
+        class const_iterator {
+            friend iterator;
+            friend void map::erase(iterator pos);
+        private:
+            typename RBTree::Node *cur;
+            bool end;
+            
+        public:
+            const_iterator() {
+                cur = nullptr;
+                end = false;
+            }
+            const_iterator(typename RBTree::Node* ptr, bool a) {
+                cur = ptr;
+                end = a;
+            }
+            const_iterator(const const_iterator &other) {
+                cur = other.cur;
+                end = other.end;
+            }
+            const_iterator(const iterator &other) {
+                cur = other.cur;
+                end = other.end;
+            }
+            const_iterator operator++(int) {
+                const_iterator tmp = const_iterator(*this);
+                static typename RBTree::Node* hhh = nullptr;
+                if (!end) hhh = cur->nxt;
+                else throw index_out_of_bound();
+                if (hhh == nullptr) end = 1;
+                else cur = hhh;
+                return tmp;
+            }
+            const_iterator & operator++() {
+                static typename RBTree::Node* hhh;
+                if (!end) hhh = cur->nxt;
+                else throw index_out_of_bound();
+                if (hhh == nullptr) end = 1;
+                else cur = hhh;
+                return *this;
+            }
+            const_iterator operator--(int) {
+                const_iterator tmp = const_iterator(*this);
+                if (end) {
+                    if (cur->tr->sz == 0) throw index_out_of_bound();
+                    end = 0;
+                    cur = cur->tr->end();
+                } else {
+                    if (cur->pre == nullptr) throw index_out_of_bound();
+                    else cur = cur->pre;
+                }
+                return tmp;
+            }
+            const_iterator & operator--() {
+                if (end) {
+                    if (cur->tr->sz == 0) throw index_out_of_bound();
+                    end = 0;
+                    cur = cur->tr->end();
+                } else {
+                    if (cur->pre == nullptr) throw index_out_of_bound();
+                    else cur = cur->pre;
+                }
+                return *this;
+            }
+            const value_type & operator*() const {
                 return cur->dat;
             }
             bool operator==(const iterator &rhs) const {
                 return (cur == rhs.cur && end == rhs.end) || (end && end == rhs.end && cur->tr == rhs.cur->tr);
             }
-            /**
-             * some other operator for iterator.
-             */
+            bool operator==(const const_iterator &rhs) const {
+                return (cur == rhs.cur && end == rhs.end) || (end && end == rhs.end && cur->tr == rhs.cur->tr);
+            }
             bool operator!=(const iterator &rhs) const {return !(*this == rhs);}
-            
-            /**
-             * for the support of it->first.
-             * See <http://kelvinh.github.io/blog/2013/11/20/overloading-of-member-access-operator-dash-greater-than-symbol-in-cpp/> for help.
-             */
-            value_type* operator->() const noexcept {
+            bool operator!=(const const_iterator &rhs) const {return !(*this == rhs);}
+            const value_type* operator->() const noexcept {
                 return &(this->operator*());
             }
         };
-        using const_iterator = iterator;
-//        class const_iterator {
-//            // it should has similar member method as iterator.
-//            //  and it should be able to construct from an iterator.
-//        private:
-//            // data members.
-//        public:
-//            const_iterator() {
-//                // TODO
-//            }
-//            const_iterator(const const_iterator &other) {
-//                // TODO
-//            }
-//            const_iterator(const iterator &other) {
-//                // TODO
-//            }
-//            // And other methods in iterator.
-//            // And other methods in iterator.
-//            // And other methods in iterator.
-//        };
         
-//    private:
+        //    private:
         RBTree t;
         
     public:
@@ -468,7 +497,7 @@ namespace sjtu {
          */
         T & at(const K &key) {
             auto fnd = t.find(key);
-//            printf("%d  %d\n", fnd->dat.first.val, key.val);
+            //            printf("%d  %d\n", fnd->dat.first.val, key.val);
             if (fnd == t.nil) {
                 throw index_out_of_bound();
             } else return fnd->dat.second;
@@ -564,9 +593,9 @@ namespace sjtu {
          */
         size_t count(const K &key) const {
             typename RBTree::Node *fnd = t.find(key);
-//            if (fnd == t.nil) {
-//                t.print(t.root);
-//            }
+            //            if (fnd == t.nil) {
+            //                t.print(t.root);
+            //            }
             return fnd == t.nil ? 0 : 1;
         }
         /**

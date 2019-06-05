@@ -34,7 +34,9 @@ namespace sjtu {
             tail = ptr;
         }
     public:
+        class const_iterator;
         class iterator {
+            friend const_iterator;
             friend iterator deque::insert(iterator pos, const T &value);
             friend iterator deque::erase(iterator pos);
         private:
@@ -113,12 +115,104 @@ namespace sjtu {
                 if (isEnd()) throw runtime_error();
                 return (blk->at(idx));
             }
+            bool operator==(const const_iterator &rhs) const {
+                return blk == rhs.blk && idx == rhs.idx;
+            }
             bool operator==(const iterator &rhs) const {
                 return blk == rhs.blk && idx == rhs.idx;
             }
+            bool operator!=(const const_iterator &rhs) const {return !(*this == rhs);}
             bool operator!=(const iterator &rhs) const {return !(*this == rhs);}
         };
-        using const_iterator = iterator;
+        class const_iterator {
+            friend iterator;
+            friend iterator deque::insert(iterator pos, const T &value);
+            friend iterator deque::erase(iterator pos);
+        private:
+            Block *blk;
+            int idx;
+            void plus(int n) {
+                if (blk->cnt - idx > n || (blk == blk->deq->tail && blk->cnt - idx == n)) idx += n;
+                else {
+                    n -= (blk->cnt - idx);
+                    for (blk = blk->nxt; blk != nullptr; n -= blk->cnt, blk = blk->nxt) {
+                        if (n < blk->cnt || (blk == blk->deq->tail && n <= blk->cnt)) {
+                            idx = n;
+                            return;
+                        }
+                    }
+                    throw runtime_error();
+                }
+            }
+            void minus(int n) {
+                if (idx >= n) {
+                    idx -= n;
+                } else {
+                    n -= (idx + 1);
+                    for (blk = blk->pre; blk != nullptr; n -= blk->cnt, blk = blk->pre) {
+                        if (n < blk->cnt) {
+                            idx = blk->cnt - n - 1;
+                            return;
+                        }
+                    }
+                    throw runtime_error();
+                }
+            }
+        public:
+            const_iterator() {}
+            const_iterator(Block *_blk, int _idx): blk(_blk), idx(_idx) {}
+            const_iterator operator+(const int &n) const {
+                const_iterator tmp = *this;
+                n >= 0? tmp.plus(n) : tmp.minus(-n);
+                return tmp;
+            }
+            const_iterator operator-(const int &n) const {
+                const_iterator tmp = *this;
+                n >= 0 ? tmp.minus(n) : tmp.plus(-n);
+                return tmp;
+            }
+            int operator-(const const_iterator &rhs) const {
+                if (blk->deq != rhs.blk->deq) throw invalid_iterator();
+                int n = idx;
+                for (Block *cur = blk->pre; cur != nullptr; cur = cur->pre) n += cur->cnt;
+                for (Block *cur = rhs.blk->pre; cur != nullptr; cur = cur->pre) n -= cur->cnt;
+                return n - rhs.idx;
+            }
+            bool isEnd() const {
+                return blk == blk->deq->tail && idx == blk->deq->tail->cnt;
+            }
+            
+            const_iterator operator+=(const int &n) {n >= 0 ? plus(n) : minus(-n);return *this;}
+            const_iterator operator-=(const int &n) {n >= 0 ? minus(n) : plus(-n);return *this;}
+            const_iterator operator++(int) {
+                iterator tmp = *this;
+                plus(1);
+                return tmp;
+            }
+            const_iterator& operator++() {plus(1);return *this;}
+            const_iterator operator--(int) {
+                const_iterator tmp = *this;
+                minus(1);
+                return tmp;
+            }
+            const_iterator& operator--() {minus(1);return *this;}
+            T& operator*() const {
+                if (isEnd()) throw runtime_error();
+                return *(blk->at(idx));
+            }
+            T* operator->() const noexcept {
+                if (isEnd()) throw runtime_error();
+                return (blk->at(idx));
+            }
+            bool operator==(const const_iterator &rhs) const {
+                return blk == rhs.blk && idx == rhs.idx;
+            }
+            bool operator==(const iterator &rhs) const {
+                return blk == rhs.blk && idx == rhs.idx;
+            }
+            bool operator!=(const const_iterator &rhs) const {return !(*this == rhs);}
+            bool operator!=(const iterator &rhs) const {return !(*this == rhs);}
+        };
         
         class Block {
         private:
